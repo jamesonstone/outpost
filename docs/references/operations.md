@@ -104,4 +104,3 @@ Production access, credentials, hosting/storage, backups, source coverage and
 retention, audience/channel verification, activation cutoff and change-control
 approval must be resolved before enabling delivery. No production activation
 configuration is supplied. The license remains undecided.
-

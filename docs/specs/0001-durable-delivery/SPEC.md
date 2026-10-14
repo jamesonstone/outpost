@@ -20,7 +20,7 @@ The initial repository contains only README and gitignore plus the merged Kit bo
 
 ## REQUIREMENTS
 
-Atomic enqueue/checkpoint; immutable activation and destination policy; one logical delivery per source/environment/tenant/order/placement/destination; short transactions; crash recovery and ambiguous attempts; read-only bounded PostgreSQL queries; explicit production classification; allowlisted payload; dispatch disabled by default; inspection, health and metrics. No production access, credentials, infrastructure, private schema, live messages .
+Atomic enqueue/checkpoint; immutable activation and destination policy; one logical delivery per source/environment/tenant/order/placement/destination; short transactions; crash recovery and ambiguous attempts; read-only bounded PostgreSQL queries; explicit production classification; allowlisted payload; dispatch disabled by default; inspection, health and metrics. No production access, credentials, infrastructure, private schema or live messages.
 
 ## ACCEPTED PLAN
 
