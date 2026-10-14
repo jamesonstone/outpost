@@ -1,44 +1,29 @@
-# Testing Reference
+# Testing reference
 
-## Purpose
+`make build` compiles `tmp/outpost`. `make test` runs native Go tests with the
+race detector. `make check` checks formatting, vet, race tests and Kit. `make fmt`
+formats sources; `make clean` removes only the generated binary.
 
-- Record the project's durable commands, suites, environments, automation, and evidence expectations
-- Follow `rules/testing-and-environment-validation.md` for the mandatory cross-project testing and production-safety contract
-- Keep feature-specific testing details in the current feature's `SPEC.md` VALIDATION and OUTCOME sections; legacy staged flows may still use `PLAN.md` or `TASKS.md`
+`make integration` requires `OUTPOST_TEST_DSN` pointing to an isolated PostgreSQL
+database on an explicit loopback host. It runs all tests including real source
+queries, read-only enforcement and the PostgreSQL-to-bbolt-to-HTTP path. Tests
+create uniquely named synthetic schemas and remove only their schemas. Never
+set this variable to a real application database. PostgreSQL 14 is validated
+locally; PR CI provisions a disposable PostgreSQL 16 service.
 
-## Code-Level Validation
+Without that variable, integration tests explicitly SKIP; native tests continue.
+CI runs vet, formatting, all race and integration tests, compilation and a
+container build on every PR. HTTP delivery tests use httptest and a synthetic
+token; no actual Slack calls occur. Generated binaries and state stay in ignored
+tmp paths. No hosted release, deployment or production test is configured.
 
-| Layer | Command | PR workflow or check | Required | Notes |
-| --- | --- | --- | --- | --- |
-| Project-specific | Document the canonical command | Document the GitHub Actions job | yes or no | Record fixtures, services, and scope |
+Manual local smoke: validate `examples/outpost.json`, use an isolated synthetic
+source, start with dispatch disabled, inspect loopback health and metrics, stop,
+then inspect or back up the state file. CLI inspection requires stopping the
+service because bbolt enforces a single process file lock.
 
-## High-Level Suites
-
-| Suite | Type | Environment | Command | Automation | Evidence |
-| --- | --- | --- | --- | --- | --- |
-| Project-specific | end-to-end or live-integration | local or production | Document the ordered invocation | PR, post-deploy, or manual fallback | `tmp/<UTC-date>/<test>/<run-number>/` |
-
-## Environment Preflights
-
-- Document exact local topology, target identity, deployed-version checks, dependencies, and timeouts
-- Document which environments are not applicable instead of creating artificial suites
-
-## Credentials And Test Data
-
-- List credential and secret names without values
-- Document synthetic-data naming, rate and cost limits, cleanup, and retention
-- Follow `rules/deletion-safety.md` for cleanup: default retained state to recoverable deletion and require exact post-outline manual confirmation before hard delete
-
-## Evidence And Retention
-
-- Keep `tmp/` ignored and record CI artifact locations and retention
-- Keep `tests/RUN_STATUS.md` curated at meaningful validation milestones
-
-## Automation And Fallbacks
-
-- Map code-level checks to pull-request jobs and high-level suites to PR or post-deployment jobs when feasible
-- Document ordered operator commands when safe automation is unavailable
-
-## Known Gaps
-
-- Record partial, blocked, skipped, and unavailable validation literally
+Production validation is UNOBSERVED and held. It requires the applicable SOP,
+approved read access, persistent-volume and backup owner, verified source
+classification/retention/query budget, workspace/channel and credential approval,
+and a chosen future activation cutoff. Do not substitute these synthetic tests
+for deployed coverage or delivery evidence.
