@@ -1,0 +1,99 @@
+schema_version: 2
+specs_dir: docs/specs
+constitution_path: docs/CONSTITUTION.md
+agents:
+    - AGENTS.md
+    - CLAUDE.md
+    - .github/copilot-instructions.md
+instruction_scaffold_version: 4
+feature_naming:
+    numeric_width: 4
+    separator: '-'
+registry:
+    schema_version: 1
+    artifacts:
+        - kind: ruleset
+          slug: agent-team-orchestration
+          path: docs/references/rules/agent-team-orchestration.md
+          installed_hash: sha256:ca656a42911a5d938c0ddefbd8417346433ed048561b216858b895d2510286bd
+          state: managed
+        - kind: ruleset
+          slug: asd-ste100
+          path: docs/references/rules/asd-ste100.md
+          installed_hash: sha256:09a146f4c43bb815a521f9b2b8928c1fad9d5ed3acb6ef0953a4e9e1e3213e9b
+          state: managed
+        - kind: ruleset
+          slug: aws-agent-toolkit-guidance
+          path: docs/references/rules/aws-agent-toolkit-guidance.md
+          installed_hash: sha256:7cfe3f9a783a92b61e421ffd7a98e402f87b500e1cfc7960de23a2bb9d3a8fda
+          state: managed
+        - kind: ruleset
+          slug: backend-service-architecture
+          path: docs/references/rules/backend-service-architecture.md
+          installed_hash: sha256:40b79a158bf9b83f21445555dc07cdf58641817bbe034ede4c72530346b212f3
+          state: managed
+        - kind: ruleset
+          slug: constitution-curation
+          path: docs/references/rules/constitution-curation.md
+          installed_hash: sha256:d812f09552ecd5fdb253f26e5dd243721960a9cf43fd7629c553ec80823f45f9
+          state: managed
+        - kind: ruleset
+          slug: cross-repository-program-coordination
+          path: docs/references/rules/cross-repository-program-coordination.md
+          installed_hash: sha256:4c8512b30a4489ec1b04c0626da7ab76adabda3100acd4bf912b23f9ee701cb4
+          state: managed
+        - kind: ruleset
+          slug: deadline-mode
+          path: docs/references/rules/deadline-mode.md
+          installed_hash: sha256:aa8acfd3828edd85785fa563328fca0f687711cabf7a043cef965054b2081ece
+          state: managed
+        - kind: ruleset
+          slug: deletion-safety
+          path: docs/references/rules/deletion-safety.md
+          installed_hash: sha256:8599c36236745b9b271d00eaaeeac1b4859309927ffd9f33482f3f05cd11cd33
+          state: managed
+        - kind: ruleset
+          slug: delivery
+          path: docs/references/rules/delivery.md
+          installed_hash: sha256:cb78ecf80f9c24b080d2806502799bbd31da0416d316eb38481826b314f1807e
+          state: managed
+        - kind: ruleset
+          slug: deployment-recovery
+          path: docs/references/rules/deployment-recovery.md
+          installed_hash: sha256:87732a2594a264be7509fa6924de8ae5a3997bb38f27ab6468c78aeb8c27e43e
+          state: managed
+        - kind: ruleset
+          slug: frontend-application-architecture
+          path: docs/references/rules/frontend-application-architecture.md
+          installed_hash: sha256:31fafc0f1b1bf2690e88d6f713603f9eee178de14e4d1dffe880272523ee073c
+          state: managed
+        - kind: ruleset
+          slug: github-pr-merge
+          path: docs/references/rules/github-pr-merge.md
+          installed_hash: sha256:f75c9ec3cbc4969a7058c20f633893cf6e242ab11464952663882d1777a562df
+          state: managed
+        - kind: ruleset
+          slug: infrastructure-change-approval
+          path: docs/references/rules/infrastructure-change-approval.md
+          installed_hash: sha256:e41173e357d620501381c36c3bd8e0a2646f3817699018275c758907e7a53de3
+          state: managed
+        - kind: ruleset
+          slug: mint-deployment-lifecycle
+          path: docs/references/rules/mint-deployment-lifecycle.md
+          installed_hash: sha256:640a89edd2170fe9ddf084b47ab55904cc4c7c45131c7b70e9a31b8a90f69420
+          state: managed
+        - kind: ruleset
+          slug: slack-read-only
+          path: docs/references/rules/slack-read-only.md
+          installed_hash: sha256:5848917b9a2add0685efe744f6b441bd64cb623b6e7275aec871f0774a04dae8
+          state: managed
+        - kind: ruleset
+          slug: testing-and-environment-validation
+          path: docs/references/rules/testing-and-environment-validation.md
+          installed_hash: sha256:0598a2e87e725110c52fe4aa0c0a4cc61d68346ecf5a45b081f419b88ebca9d4
+          state: managed
+        - kind: ruleset
+          slug: work-cleanup
+          path: docs/references/rules/work-cleanup.md
+          installed_hash: sha256:264cd6caefd1dbda63cb20db6541eadd1c893c74b07e2b8aaee5f8c80d2ba56e
+          state: managed
