@@ -55,7 +55,7 @@ registry:
         - kind: ruleset
           slug: delivery
           path: docs/references/rules/delivery.md
-          installed_hash: sha256:cb78ecf80f9c24b080d2806502799bbd31da0416d316eb38481826b314f1807e
+          installed_hash: sha256:04f01f201c6d329bb5e0c9a719a3f42ba48f6e849b08dbaa48b1aed78c0f48dd
           state: managed
         - kind: ruleset
           slug: deployment-recovery
@@ -95,5 +95,5 @@ registry:
         - kind: ruleset
           slug: work-cleanup
           path: docs/references/rules/work-cleanup.md
-          installed_hash: sha256:264cd6caefd1dbda63cb20db6541eadd1c893c74b07e2b8aaee5f8c80d2ba56e
+          installed_hash: sha256:b6d521961520045a8949f100f9d4613035bf2dc783952ac2ecc293a216804b1f
           state: managed
