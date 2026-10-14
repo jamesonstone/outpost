@@ -94,4 +94,4 @@ and credentials outside this repository.
 
 ## Maintainers
 
-Maintained by the [jamesonstone](https://github.com/jamesonstone) team.
+Maintained by [jamesonstone](https://github.com/jamesonstone).
