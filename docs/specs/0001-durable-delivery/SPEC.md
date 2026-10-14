@@ -20,7 +20,7 @@ The initial repository contains only README and gitignore plus the merged Kit bo
 
 ## REQUIREMENTS
 
-Atomic enqueue/checkpoint; immutable activation and destination policy; one logical delivery per source/environment/tenant/order/placement/destination; short transactions; crash recovery and ambiguous attempts; read-only bounded PostgreSQL queries; explicit production classification; allowlisted payload; dispatch disabled by default; inspection, health and metrics. No production access, credentials, infrastructure, private schema, live messages or implementation merge.
+Atomic enqueue/checkpoint; immutable activation and destination policy; one logical delivery per source/environment/tenant/order/placement/destination; short transactions; crash recovery and ambiguous attempts; read-only bounded PostgreSQL queries; explicit production classification; allowlisted payload; dispatch disabled by default; inspection, health and metrics. No production access, credentials, infrastructure, private schema, live messages .
 
 ## ACCEPTED PLAN
 
@@ -36,12 +36,12 @@ Source retention, query cost and deployed classification completeness remain unv
 
 ## VALIDATION
 
-PASS: make build, make check, make integration with an isolated loopback PostgreSQL 14 cluster, including full PostgreSQL-to-bbolt-to-HTTP test. PASS: disabled-dispatch executable smoke (readiness, metrics, graceful shutdown, inspection with zero sends, backup), local nonroot container build, and private-term scan over repository artifacts. Production delivery UNOBSERVED. Hosted CI pending draft PR.
+PASS: make build, make check, make integration with an isolated loopback PostgreSQL 14 cluster, including full PostgreSQL-to-bbolt-to-HTTP test. PASS: disabled-dispatch executable smoke (readiness, metrics, graceful shutdown, inspection with zero sends, backup), local nonroot container build, and private-term scan over repository artifacts. Production delivery UNOBSERVED. Hosted CI PASS at initial implementation head 7980b79 (run 38601934100). README revision validation follows on the current PR head.
 
 ## OUTCOME
 
-Implemented generic adapters, durable state, reconciliation, retries, inspection, backup, metrics, executable, synthetic fixtures and PR CI. Delivery is a draft PR; no implementation merge, production access, deployment or live messages. License undecided. No deployment requirements supplied; production activation remains outside this implementation.
+Implemented generic adapters, durable state, reconciliation, retries, inspection, backup, metrics, executable, synthetic fixtures and PR CI. PR #4 is ready for review. The user authorized its merge after README simplification and feedback resolution; production access, deployment and live messages remain excluded. License undecided. No deployment requirements supplied; production activation remains outside this implementation.
 
 ## REPOSITORY MEMORY
 
-This SPEC captures rationale. README and testing reference record commands, adapter contracts, operational limits and validated behavior. Constitution remains the valid starter because this first implementation has not established recurring project-wide conventions.
+This SPEC captures rationale. README records installation and everyday use with an ASCII header. Operations reference holds detailed adapter contracts and recovery limits; testing reference records validation commands. Constitution remains the valid starter because this first implementation has not established recurring project-wide conventions.
