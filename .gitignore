@@ -39,3 +39,11 @@ go.work.sum
 .kit/temp/
 .kit/*.tmp
 .kit/*.lock
+
+# Outpost local delivery state and operator configuration
+*.db
+*.db.*
+outpost.json
+
+tmp/
+!examples/outpost.json

@@ -1,0 +1,40 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: outpost_synthetic
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: outpost_synthetic
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U outpost_synthetic"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      OUTPOST_TEST_DSN: postgres://outpost_synthetic:synthetic-only@127.0.0.1:5432/outpost_synthetic?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: test -z "$(gofmt -l cmd internal tests)"
+      - run: go vet ./...
+      - run: make integration
+      - run: make build
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag outpost:test .

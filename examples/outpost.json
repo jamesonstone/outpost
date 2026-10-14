@@ -1,0 +1,12 @@
+{
+  "state_path": "tmp/outpost.db",
+  "source_id": "synthetic-example",
+  "query_file": "examples/projection.sql",
+  "partner": "synthetic-partner",
+  "channel": "CEXAMPLE123",
+  "activation": "2030-01-01T00:00:00Z",
+  "dispatch_enabled": false,
+  "page_size": 500,
+  "poll_seconds": 60,
+  "listen": "127.0.0.1:8080"
+}

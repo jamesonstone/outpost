@@ -1,0 +1,7 @@
+.git
+.env*
+.codex
+.agents
+tmp
+*.db
+*.db.*
