@@ -16,6 +16,7 @@ import (
 )
 
 type Config struct {
+	AudiencePolicy  string    `json:"audience_policy"`
 	NewStatePolicy  string    `json:"new_state_policy"`
 	WorkspaceID     string    `json:"workspace_id"`
 	AllowedUserIDs  []string  `json:"allowed_user_ids"`
@@ -71,17 +72,8 @@ func Load(path string) (c Config, err error) {
 	if c.NewStatePolicy != "" && c.NewStatePolicy != "from_startup" {
 		return c, errors.New("invalid new-state policy")
 	}
-	if c.WorkspaceID != "" || len(c.AllowedUserIDs) > 0 {
-		if !regexp.MustCompile(`^T[A-Z0-9]+$`).MatchString(c.WorkspaceID) || len(c.AllowedUserIDs) == 0 {
-			return c, errors.New("workspace and allowed users required together")
-		}
-		seen := map[string]bool{}
-		for _, id := range c.AllowedUserIDs {
-			if !regexp.MustCompile(`^[UW][A-Z0-9]+$`).MatchString(id) || seen[id] {
-				return c, errors.New("invalid allowed user IDs")
-			}
-			seen[id] = true
-		}
+	if err := c.validateAudience(); err != nil {
+		return c, err
 	}
 	c.Activation = c.Activation.UTC()
 	return c, nil
@@ -90,4 +82,33 @@ func (c Config) Policy(query string) core.Policy {
 	// Bind the projection contract as well as the operator-assigned source identity.
 	h := sha256.Sum256([]byte(query))
 	return core.Policy{Source: fmt.Sprintf("%s:%x", c.SourceID, h), Channel: c.Channel, Partner: c.Partner, Activation: c.Activation, NewStatePolicy: c.NewStatePolicy}
+}
+
+func (c Config) validateAudience() error {
+	if c.AudiencePolicy != "" && c.AudiencePolicy != "private_allowlist" && c.AudiencePolicy != "workspace_public" {
+		return errors.New("invalid Slack audience policy")
+	}
+	if c.AudiencePolicy == "" && c.WorkspaceID == "" && len(c.AllowedUserIDs) == 0 {
+		return nil
+	}
+	if !regexp.MustCompile(`^T[A-Z0-9]+$`).MatchString(c.WorkspaceID) {
+		return errors.New("pinned workspace required for Slack audience policy")
+	}
+	if c.AudiencePolicy == "workspace_public" {
+		if len(c.AllowedUserIDs) != 0 {
+			return errors.New("public Slack audience conflicts with allowed users")
+		}
+		return nil
+	}
+	if len(c.AllowedUserIDs) == 0 {
+		return errors.New("workspace and allowed users required together")
+	}
+	seen := map[string]bool{}
+	for _, id := range c.AllowedUserIDs {
+		if !regexp.MustCompile(`^[UW][A-Z0-9]+$`).MatchString(id) || seen[id] {
+			return errors.New("invalid allowed user IDs")
+		}
+		seen[id] = true
+	}
+	return nil
 }

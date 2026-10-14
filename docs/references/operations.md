@@ -117,7 +117,11 @@ downtime and late commits before that floor are intentionally missed. There is
 no automatic snapshot restore. Omit the field to retain original reconciliation
 from the configured activation cutoff. Switching policy on a ledger is rejected.
 
-For a private audience, set `workspace_id` and `allowed_user_ids` together. The
+## Slack audience policies
+
+For a private audience, set `workspace_id` and `allowed_user_ids` together. An
+omitted `audience_policy` uses the existing private guard when these fields are
+present; `private_allowlist` selects it explicitly and requires both fields. The
 bot must have `chat:write` and `groups:read`, and be invited only to the pinned
 private channel. Do not grant `chat:write.public`. Before every post, Outpost
 verifies the token's workspace/bot identity, private/unshared/nongeneral/non-DM
@@ -128,6 +132,27 @@ and exposes `outpost_safety_paused=1`; logs identify the pause without order dat
 Inspect membership, resolve the condition, explicitly retry any guard-failed
 record, and restart to resume. Slack does not provide an atomic membership-
 conditional post, so administrators must also control channel membership.
+
+To send into a public workspace channel, set `audience_policy` to
+`workspace_public`, pin `workspace_id` and `channel`, and omit `allowed_user_ids`
+(or use an empty array). Nonempty allowed users conflict with this policy and
+configuration validation rejects them. A public channel is discoverable and
+readable by workspace members; its audience is deliberately broader than a
+private allowlist. This setting does not create or convert a channel.
+
+The bot needs `chat:write` plus `channels:read`, and must already be a member of
+that exact channel. Do not grant `chat:write.public`. Each attempt verifies the
+bot's workspace, exact channel ID, joined membership, and public/nonarchived/
+nongeneral/non-DM status. Shared, externally shared, organization-shared, and
+pending-sharing channels are rejected. The channel context and sole shared-team
+ID must match the pinned workspace. Missing safety metadata prevents posting.
+Public mode does not enumerate or restrict human members. Guard failures pause
+dispatch as above. Control channel sharing between verification and posting.
+The message renderer still escapes broadcast markup and disables mention parsing.
+
+When all audience fields are omitted, legacy configurations keep their existing
+unguarded channel-ID behavior. Use an explicit policy for new deployments.
+Audience selection alone never enables dispatch or changes an existing deployment.
 
 `-command status` reports state counts and effective activation. Metrics also
 expose `outpost_effective_activation_timestamp_seconds`. Configure external alerts

@@ -31,7 +31,10 @@ type Client struct {
 	Channel  string
 	HTTP     *http.Client
 	Endpoint string
-	// Workspace and AllowedUsers enable strict private-destination verification.
+	// AudiencePolicy explicitly selects private_allowlist or workspace_public.
+	// Empty preserves the private guard when Workspace/AllowedUsers are configured.
+	AudiencePolicy string
+	// Workspace and AllowedUsers pin the destination and private audience.
 	Workspace    string
 	AllowedUsers []string
 	// APIBase overrides the verification API base only for HTTP fixtures.

@@ -23,15 +23,21 @@ type authentication struct {
 type channelInfo struct {
 	OK      bool `json:"ok"`
 	Channel struct {
-		ID        string `json:"id"`
-		Private   *bool  `json:"is_private"`
-		General   *bool  `json:"is_general"`
-		Shared    *bool  `json:"is_shared"`
-		External  *bool  `json:"is_ext_shared"`
-		OrgShared *bool  `json:"is_org_shared"`
-		IM        *bool  `json:"is_im"`
-		MPIM      *bool  `json:"is_mpim"`
-		Archived  *bool  `json:"is_archived"`
+		ID               string    `json:"id"`
+		Private          *bool     `json:"is_private"`
+		General          *bool     `json:"is_general"`
+		Shared           *bool     `json:"is_shared"`
+		External         *bool     `json:"is_ext_shared"`
+		OrgShared        *bool     `json:"is_org_shared"`
+		IM               *bool     `json:"is_im"`
+		MPIM             *bool     `json:"is_mpim"`
+		Archived         *bool     `json:"is_archived"`
+		Member           *bool     `json:"is_member"`
+		PendingExternal  *bool     `json:"is_pending_ext_shared"`
+		PendingShared    *[]string `json:"pending_shared"`
+		PendingConnected *[]string `json:"pending_connected_team_ids"`
+		SharedTeams      *[]string `json:"shared_team_ids"`
+		ContextTeam      string    `json:"context_team_id"`
 	} `json:"channel"`
 }
 
@@ -47,11 +53,18 @@ type memberPage struct {
 // for every attempt so a changed channel membership cannot use a cached approval.
 // With neither guard field configured, legacy clients retain their behavior.
 func (c *Client) Verify(ctx context.Context) error {
-	if c.Workspace == "" && len(c.AllowedUsers) == 0 {
+	if c.AudiencePolicy == "" && c.Workspace == "" && len(c.AllowedUsers) == 0 {
 		return nil
 	}
 	reject := failure("destination_guard_rejected", true, false)
-	if c.Token == "" || !workspaceID.MatchString(c.Workspace) || !channelID.MatchString(c.Channel) || len(c.AllowedUsers) == 0 {
+	public := c.AudiencePolicy == "workspace_public"
+	if c.AudiencePolicy != "" && c.AudiencePolicy != "private_allowlist" && !public {
+		return reject
+	}
+	if (public && len(c.AllowedUsers) != 0) || (!public && len(c.AllowedUsers) == 0) {
+		return reject
+	}
+	if c.Token == "" || !workspaceID.MatchString(c.Workspace) || !channelID.MatchString(c.Channel) {
 		return reject
 	}
 	allowed := make(map[string]bool, len(c.AllowedUsers)+1)
@@ -67,13 +80,28 @@ func (c *Client) Verify(ctx context.Context) error {
 	}
 	allowed[auth.User] = true
 	var info channelInfo
-	if c.guardRead(ctx, "conversations.info", url.Values{"channel": {c.Channel}}, &info) != nil || !info.OK || info.Channel.ID != c.Channel || info.Channel.Private == nil || !*info.Channel.Private {
+	if c.guardRead(ctx, "conversations.info", url.Values{"channel": {c.Channel}}, &info) != nil || !info.OK || info.Channel.ID != c.Channel || info.Channel.Private == nil || *info.Channel.Private == public {
 		return reject
 	}
 	for _, flag := range []*bool{info.Channel.General, info.Channel.Shared, info.Channel.External, info.Channel.OrgShared, info.Channel.IM, info.Channel.MPIM, info.Channel.Archived} {
 		if flag == nil || *flag {
 			return reject
 		}
+	}
+	if public {
+		ch := info.Channel
+		if ch.Member == nil || !*ch.Member || ch.PendingExternal == nil || *ch.PendingExternal || ch.ContextTeam != c.Workspace {
+			return reject
+		}
+		for _, pending := range []*[]string{ch.PendingShared, ch.PendingConnected} {
+			if pending == nil || len(*pending) != 0 {
+				return reject
+			}
+		}
+		if ch.SharedTeams == nil || len(*ch.SharedTeams) != 1 || (*ch.SharedTeams)[0] != c.Workspace {
+			return reject
+		}
+		return nil
 	}
 	seenMembers := make(map[string]bool, len(allowed))
 	seenCursors := make(map[string]bool)

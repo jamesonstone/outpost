@@ -130,7 +130,7 @@ func run() error {
 	default:
 		return errors.New("unknown command")
 	}
-	destination := &slack.Client{Token: os.Getenv("OUTPOST_SLACK_TOKEN"), Channel: c.Channel, Workspace: c.WorkspaceID, AllowedUsers: c.AllowedUserIDs}
+	destination := &slack.Client{Token: os.Getenv("OUTPOST_SLACK_TOKEN"), Channel: c.Channel, Workspace: c.WorkspaceID, AllowedUsers: c.AllowedUserIDs, AudiencePolicy: c.AudiencePolicy}
 	if c.DispatchEnabled {
 		guardCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		err := destination.Verify(guardCtx)
