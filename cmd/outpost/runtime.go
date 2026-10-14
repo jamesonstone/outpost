@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -24,7 +25,7 @@ func serve(ctx context.Context, e *service.Engine, c config.Config) error {
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UTC()
 		stats, err := e.Store.Stats(now)
-		if err != nil || stats.LastSweep.IsZero() || now.Sub(stats.LastSweep) > 5*time.Minute {
+		if e.SafetyPaused.Load() || err != nil || stats.LastSweep.IsZero() || now.Sub(stats.LastSweep) > 5*time.Minute {
 			http.Error(w, "reconciliation unavailable", 503)
 			return
 		}
@@ -46,6 +47,11 @@ func serve(ctx context.Context, e *service.Engine, c config.Config) error {
 		if !s.LastSweep.IsZero() {
 			age = now.Sub(s.LastSweep).Seconds()
 		}
+		paused := 0
+		if e.SafetyPaused.Load() {
+			paused = 1
+		}
+		fmt.Fprintf(w, "outpost_safety_paused %d\noutpost_effective_activation_timestamp_seconds %d\n", paused, s.EffectiveActivation.Unix())
 		fmt.Fprintf(w, "outpost_pending %d\noutpost_sending %d\noutpost_delivered %d\noutpost_failed %d\noutpost_conflicts %d\noutpost_classification_exceptions %d\noutpost_attempts_total %d\noutpost_ambiguous_total %d\noutpost_oldest_pending_seconds %f\noutpost_last_sweep_age_seconds %f\noutpost_dispatch_enabled %d\n", s.Pending, s.Sending, s.Delivered, s.Failed, s.Conflicts, s.Exceptions, s.Attempts, s.Ambiguous, s.OldestPendingSeconds, age, enabled)
 	})
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
@@ -54,7 +60,7 @@ func serve(ctx context.Context, e *service.Engine, c config.Config) error {
 	workerCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var workers sync.WaitGroup
-	workers.Add(2)
+	workers.Add(3)
 	go func() {
 		defer workers.Done()
 		loop(workerCtx, func() time.Duration {
@@ -74,9 +80,30 @@ func serve(ctx context.Context, e *service.Engine, c config.Config) error {
 		loop(workerCtx, func() time.Duration {
 			_, err := e.DispatchOne(workerCtx)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "dispatch state failed")
+				if errors.Is(err, service.ErrDestinationUnsafe) {
+					fmt.Fprintln(os.Stderr, "destination safety check failed; dispatch paused")
+				} else {
+					fmt.Fprintln(os.Stderr, "dispatch state failed")
+				}
 			}
 			return time.Second
+		})
+	}()
+	go func() {
+		defer workers.Done()
+		loop(workerCtx, func() time.Duration {
+			now := time.Now().UTC()
+			stats, err := e.Store.Stats(now)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "state health failed")
+				return time.Minute
+			}
+			age := 999999.0
+			if !stats.LastSweep.IsZero() {
+				age = now.Sub(stats.LastSweep).Seconds()
+			}
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"metric": "outpost_health", "last_sweep_age_seconds": age, "oldest_pending_seconds": stats.OldestPendingSeconds, "pending": stats.Pending, "failed": stats.Failed, "conflicts": stats.Conflicts, "exceptions": stats.Exceptions, "ambiguous": stats.Ambiguous, "safety_paused": e.SafetyPaused.Load(), "dispatch_enabled": e.Enabled})
+			return time.Minute
 		})
 	}()
 	var result error

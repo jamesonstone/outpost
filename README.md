@@ -43,6 +43,10 @@ Edit `outpost.json` before starting:
 - `partner`: the partner to include; `channel`: the Slack channel ID.
 - `activation`: the UTC time from which alerts become eligible.
 - Keep `dispatch_enabled` set to `false` while checking the source.
+- For best-effort state recovery, set `new_state_policy: "from_startup"` to skip
+  historical events absent from the ledger after each service start.
+- For a private audience, set `workspace_id` and `allowed_user_ids` to enforce
+  the exact workspace and channel members before every send.
 
 The examples contain synthetic data. Replace their query and future activation
 date for your source. Set `OUTPOST_POSTGRES_DSN` through your runtime environment;

@@ -11,6 +11,7 @@ import (
 func decode(raw []byte, v any) error { return json.Unmarshal(raw, v) }
 
 type Stats struct {
+	EffectiveActivation  time.Time `json:"effective_activation"`
 	Pending              int       `json:"pending"`
 	Sending              int       `json:"sending"`
 	Delivered            int       `json:"delivered"`
@@ -25,6 +26,9 @@ type Stats struct {
 
 func (s *Store) Stats(now time.Time) (out Stats, err error) {
 	err = s.db.View(func(tx *bolt.Tx) error {
+		if err := get(tx.Bucket([]byte("meta")), "effective_activation", &out.EffectiveActivation); err != nil {
+			return err
+		}
 		var scan core.Scan
 		if err := get(tx.Bucket([]byte("meta")), "scan", &scan); err != nil {
 			return err

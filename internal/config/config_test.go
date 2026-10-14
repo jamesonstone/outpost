@@ -26,3 +26,28 @@ func TestStrictConfiguration(t *testing.T) {
 		}
 	}
 }
+
+func TestRecoveryAndAudienceConfiguration(t *testing.T) {
+	base := `{"state_path":"state.db","source_id":"fixture","query_file":"events.sql","partner":"Example","channel":"C123","activation":"2030-01-01T00:00:00Z"`
+	for _, tt := range []struct {
+		extra string
+		ok    bool
+	}{
+		{`,"new_state_policy":"from_startup","workspace_id":"T123","allowed_user_ids":["U123"]}`, true},
+		{`,"new_state_policy":"replay_everything"}`, false},
+		{`,"workspace_id":"T123"}`, false},
+		{`,"allowed_user_ids":["U123"]}`, false},
+		{`,"workspace_id":"T123","allowed_user_ids":["U123","U123"]}`, false},
+		{`,"workspace_id":"T123","allowed_user_ids":["@everyone"]}`, false},
+	} {
+		path := filepath.Join(t.TempDir(), "config.json")
+		os.WriteFile(path, []byte(base+tt.extra), 0600)
+		c, err := Load(path)
+		if (err == nil) != tt.ok {
+			t.Fatalf("unexpected validation: %v", err)
+		}
+		if tt.ok && c.Policy("query").NewStatePolicy != "from_startup" {
+			t.Fatal("recovery policy not bound")
+		}
+	}
+}

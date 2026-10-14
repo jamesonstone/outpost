@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,7 @@ func main() {
 func run() error {
 	flags := flag.NewFlagSet("outpost", flag.ContinueOnError)
 	path := flags.String("config", "outpost.json", "nonsecret configuration file")
-	command := flags.String("command", "run", "run, inspect, attempts, retry, backup, validate")
+	command := flags.String("command", "run", "run, inspect, status, attempts, retry, backup, validate, healthcheck")
 	key := flags.String("key", "", "logical delivery key for attempts or retry")
 	backup := flags.String("backup", "", "new backup file path")
 	limit := flags.Int("limit", 100, "inspection limit (1-1000)")
@@ -38,6 +39,18 @@ func run() error {
 	c, err := config.Load(*path)
 	if err != nil {
 		return err
+	}
+	if *command == "healthcheck" {
+		client := &http.Client{Timeout: 3 * time.Second}
+		res, err := client.Get("http://" + c.Listen + "/healthz")
+		if err != nil {
+			return errors.New("health check failed")
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return errors.New("health check failed")
+		}
+		return nil
 	}
 	query, err := os.ReadFile(c.QueryFile)
 	if err != nil {
@@ -85,6 +98,12 @@ func run() error {
 	}
 	defer st.Close()
 	switch *command {
+	case "status":
+		stats, err := st.Stats(time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(stats)
 	case "inspect":
 		records, err := st.List(*limit)
 		if err != nil {
@@ -111,6 +130,22 @@ func run() error {
 	default:
 		return errors.New("unknown command")
 	}
-	e := &service.Engine{Store: st, Source: pg, Destination: &slack.Client{Token: os.Getenv("OUTPOST_SLACK_TOKEN"), Channel: c.Channel}, Activation: c.Activation, PageSize: c.PageSize, Enabled: c.DispatchEnabled, Lease: time.Minute, RequestTimeout: 15 * time.Second}
+	destination := &slack.Client{Token: os.Getenv("OUTPOST_SLACK_TOKEN"), Channel: c.Channel, Workspace: c.WorkspaceID, AllowedUsers: c.AllowedUserIDs}
+	if c.DispatchEnabled {
+		guardCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		err := destination.Verify(guardCtx)
+		cancel()
+		if err != nil {
+			return err
+		}
+	}
+	if err := st.BeginRun(time.Now().UTC()); err != nil {
+		return err
+	}
+	activation, err := st.EffectiveActivation()
+	if err != nil {
+		return err
+	}
+	e := &service.Engine{Store: st, Source: pg, Destination: destination, Activation: activation, PageSize: c.PageSize, Enabled: c.DispatchEnabled, Lease: time.Minute, RequestTimeout: 15 * time.Second}
 	return serve(ctx, e, c)
 }

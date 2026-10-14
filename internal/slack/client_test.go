@@ -20,7 +20,7 @@ func fixture() core.Event {
 
 func TestSendAllowlistedEscapedPayload(t *testing.T) {
 	event := fixture()
-	event.OrderID = "order<&> <!here>"
+	event.OrderID = "order<&> <!here> <!channel> <!everyone>"
 	event.Partner = "partner<&> <@U123> @everyone"
 	event.Link = "https://orders.example.test/order?x=a&y=b|c"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,12 +46,12 @@ func TestSendAllowlistedEscapedPayload(t *testing.T) {
 			}
 		}
 		text, _ := payload["text"].(string)
-		for _, want := range []string{"order&lt;&amp;&gt; &lt;!here&gt;", "partner&lt;&amp;&gt; &lt;@U123&gt;", "2026-10-14T10:00:00Z", "x=a&amp;y=b%7Cc|View order>"} {
+		for _, want := range []string{"order&lt;&amp;&gt; &lt;!here&gt; &lt;!channel&gt; &lt;!everyone&gt;", "partner&lt;&amp;&gt; &lt;@U123&gt;", "2026-10-14T10:00:00Z", "x=a&amp;y=b%7Cc|View order>"} {
 			if !strings.Contains(text, want) {
 				t.Errorf("missing escaped payload element %q", want)
 			}
 		}
-		for _, excluded := range []string{"publication-secret", "tenant-secret", "synthetic-token", "<!here>", "<@U123>"} {
+		for _, excluded := range []string{"publication-secret", "tenant-secret", "synthetic-token", "<!here>", "<!channel>", "<!everyone>", "<@U123>"} {
 			if strings.Contains(text, excluded) {
 				t.Errorf("payload contains excluded field %q", excluded)
 			}

@@ -16,6 +16,9 @@ import (
 )
 
 type Config struct {
+	NewStatePolicy  string    `json:"new_state_policy"`
+	WorkspaceID     string    `json:"workspace_id"`
+	AllowedUserIDs  []string  `json:"allowed_user_ids"`
 	StatePath       string    `json:"state_path"`
 	SourceID        string    `json:"source_id"`
 	QueryFile       string    `json:"query_file"`
@@ -65,11 +68,26 @@ func Load(path string) (c Config, err error) {
 	if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
 		return c, errors.New("health listener must use a loopback IP")
 	}
+	if c.NewStatePolicy != "" && c.NewStatePolicy != "from_startup" {
+		return c, errors.New("invalid new-state policy")
+	}
+	if c.WorkspaceID != "" || len(c.AllowedUserIDs) > 0 {
+		if !regexp.MustCompile(`^T[A-Z0-9]+$`).MatchString(c.WorkspaceID) || len(c.AllowedUserIDs) == 0 {
+			return c, errors.New("workspace and allowed users required together")
+		}
+		seen := map[string]bool{}
+		for _, id := range c.AllowedUserIDs {
+			if !regexp.MustCompile(`^[UW][A-Z0-9]+$`).MatchString(id) || seen[id] {
+				return c, errors.New("invalid allowed user IDs")
+			}
+			seen[id] = true
+		}
+	}
 	c.Activation = c.Activation.UTC()
 	return c, nil
 }
 func (c Config) Policy(query string) core.Policy {
 	// Bind the projection contract as well as the operator-assigned source identity.
 	h := sha256.Sum256([]byte(query))
-	return core.Policy{Source: fmt.Sprintf("%s:%x", c.SourceID, h), Channel: c.Channel, Partner: c.Partner, Activation: c.Activation}
+	return core.Policy{Source: fmt.Sprintf("%s:%x", c.SourceID, h), Channel: c.Channel, Partner: c.Partner, Activation: c.Activation, NewStatePolicy: c.NewStatePolicy}
 }

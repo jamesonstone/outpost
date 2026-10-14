@@ -5,13 +5,17 @@ import (
 	"context"
 	"errors"
 	"math/rand/v2"
+	"sync/atomic"
 	"time"
 
 	"github.com/jamesonstone/outpost/internal/core"
 	"github.com/jamesonstone/outpost/internal/state"
 )
 
+var ErrDestinationUnsafe = errors.New("destination safety check failed; dispatch paused")
+
 type Engine struct {
+	SafetyPaused   atomic.Bool
 	Store          *state.Store
 	Source         core.Source
 	Destination    core.Destination
@@ -38,15 +42,19 @@ func (e *Engine) ScanPage(ctx context.Context) (complete bool, err error) {
 	if e.PageSize < 1 || e.PageSize > 1000 {
 		return false, errors.New("invalid page size")
 	}
+	activation, err := e.Store.EffectiveActivation()
+	if err != nil {
+		return false, err
+	}
 	now := e.now()
-	if now.Before(e.Activation) {
+	if now.Before(activation) {
 		return true, nil
 	}
 	scan, err := e.Store.Scan()
 	if err != nil {
 		return false, err
 	}
-	if !scan.Upper.IsZero() && scan.Upper.Before(e.Activation) {
+	if !scan.Upper.IsZero() && scan.Upper.Before(activation) {
 		scan.Upper = time.Time{}
 		scan.Cursor = core.Cursor{}
 		if err = e.Store.ApplyPage(nil, scan, now); err != nil {
@@ -57,7 +65,7 @@ func (e *Engine) ScanPage(ctx context.Context) (complete bool, err error) {
 	if err != nil {
 		return false, err
 	}
-	events, err := e.Source.Page(ctx, e.Activation, scan.Upper, scan.Cursor, e.PageSize)
+	events, err := e.Source.Page(ctx, activation, scan.Upper, scan.Cursor, e.PageSize)
 	if err != nil {
 		return false, err
 	}
@@ -67,7 +75,7 @@ func (e *Engine) ScanPage(ctx context.Context) (complete bool, err error) {
 	last := scan.Cursor
 	for _, ev := range events {
 		c := core.Cursor{PlacedAt: ev.PlacedAt, ID: ev.ID}
-		if ev.ID == "" || ev.PlacedAt.IsZero() || ev.PlacedAt.Before(e.Activation) || ev.PlacedAt.After(scan.Upper) || !after(c, last) {
+		if ev.ID == "" || ev.PlacedAt.IsZero() || ev.PlacedAt.Before(activation) || ev.PlacedAt.After(scan.Upper) || !after(c, last) {
 			return false, errors.New("invalid source page ordering")
 		}
 		last = c
@@ -92,6 +100,9 @@ func backoff(attempt uint64) time.Duration {
 	return max/2 + time.Duration(rand.Int64N(int64(max/2)+1))
 }
 func (e *Engine) DispatchOne(ctx context.Context) (bool, error) {
+	if e.SafetyPaused.Load() {
+		return false, ErrDestinationUnsafe
+	}
 	if !e.Enabled {
 		return false, nil
 	}
@@ -116,5 +127,11 @@ func (e *Engine) DispatchOne(ctx context.Context) (bool, error) {
 		retry = result.RetryAfter
 	}
 	err = e.Store.Finish(d.Key, d.Token, receipt, result, e.now(), retry)
+	if result != nil && result.Category == "destination_guard_rejected" {
+		e.SafetyPaused.Store(true)
+		if err == nil {
+			return true, ErrDestinationUnsafe
+		}
+	}
 	return true, err
 }
