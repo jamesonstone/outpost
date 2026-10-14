@@ -36,11 +36,11 @@ Slack channel metadata exposes bot membership and pending sharing state. Per-att
 
 ## VALIDATION
 
-PASS: go test -race ./internal/slack ./internal/config. Tests cover explicit/implicit private policy compatibility, public opt-in, conflicting allowlists, missing pins, joined bot, sharing and pending-sharing metadata, channel changes before later attempts, and zero posts on rejection. All gateway tests use synthetic HTTP fixtures. Full project validation and hosted CI are owned by the primary agent and remain pending.
+PASS: go test -race ./internal/slack ./internal/config. Tests cover explicit/implicit private policy compatibility, public opt-in, conflicting allowlists, missing pins, joined bot, sharing and pending-sharing metadata, channel changes before later attempts, and zero posts on rejection. All gateway tests use synthetic HTTP fixtures. Full make check PASS (formatting, vet, all race tests and Kit project contract). Independent read-only review found no actionable findings. Real PostgreSQL integration and container build remain hosted CI gates; no live delivery is claimed.
 
 ## OUTCOME
 
-Implemented policy validation, per-attempt public channel verification, native tests, and operator guidance. Runtime wiring and complete PR delivery are owned by the primary agent. No private destination configuration changes or live Slack writes.
+Implemented policy validation, per-attempt public channel verification, native tests, and operator guidance. Runtime configuration is wired to the adapter. PR delivery is in progress. No private destination configuration changes or live Slack writes.
 
 ## REPOSITORY MEMORY
 
