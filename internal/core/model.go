@@ -27,10 +27,11 @@ type Event struct {
 }
 
 type Policy struct {
-	Source     string    `json:"source"`
-	Channel    string    `json:"channel"`
-	Partner    string    `json:"partner"`
-	Activation time.Time `json:"activation"`
+	Source         string    `json:"source"`
+	Channel        string    `json:"channel"`
+	Partner        string    `json:"partner"`
+	Activation     time.Time `json:"activation"`
+	NewStatePolicy string    `json:"new_state_policy,omitempty"`
 }
 
 type Cursor struct {

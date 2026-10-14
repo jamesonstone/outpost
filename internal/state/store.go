@@ -2,7 +2,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,32 +21,31 @@ type Store struct {
 	policy core.Policy
 }
 
+// Open uses the process clock to establish an opt-in fresh-ledger cutoff.
 func Open(path string, p core.Policy) (*Store, error) {
+	return OpenAt(path, p, time.Now())
+}
+
+// OpenAt accepts a deterministic initialization clock. Opening retained state
+// preserves its cutoff; BeginRun advances the opt-in source baseline.
+func OpenAt(path string, p core.Policy, now time.Time) (*Store, error) {
+	if p.NewStatePolicy != "" && p.NewStatePolicy != "from_startup" {
+		return nil, errors.New("invalid new state policy")
+	}
+	if p.NewStatePolicy == "from_startup" && now.IsZero() {
+		return nil, errors.New("invalid startup clock")
+	}
 	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: time.Second})
 	if err != nil {
 		return nil, errors.New("state open failed")
 	}
 	s := &Store{db: db, policy: p}
 	err = db.Update(func(tx *bolt.Tx) error {
-		for _, name := range buckets {
-			if _, err := tx.CreateBucketIfNotExists([]byte(name)); err != nil {
-				return err
-			}
+		activation, err := initialize(tx, p, now)
+		if err == nil {
+			s.policy.Activation = activation
 		}
-		meta := tx.Bucket([]byte("meta"))
-		v := meta.Get([]byte("version"))
-		if v != nil && string(v) != "1" {
-			return errors.New("unsupported state version")
-		}
-		b, _ := json.Marshal(p)
-		old := meta.Get([]byte("policy"))
-		if old != nil && !bytes.Equal(old, b) {
-			return ErrPolicy
-		}
-		if err := meta.Put([]byte("policy"), b); err != nil {
-			return err
-		}
-		return meta.Put([]byte("version"), []byte("1"))
+		return err
 	})
 	if err != nil {
 		db.Close()

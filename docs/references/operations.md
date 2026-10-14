@@ -104,3 +104,37 @@ Production access, credentials, hosting/storage, backups, source coverage and
 retention, audience/channel verification, activation cutoff and change-control
 approval must be resolved before enabling delivery. No production activation
 configuration is supplied. The license remains undecided.
+
+## Best-effort state and private destinations
+
+Set `new_state_policy` to `from_startup` when historical source events missing
+from the ledger must never be rebuilt at startup. Every service run advances the
+persisted scan/eligibility floor to the later of its prior floor and startup time,
+resets scan progress, and preserves recorded pending deliveries and their retries.
+A new or lost ledger, or an old snapshot started again, skips earlier absent
+notifications. Inspection/backup do not move the floor. Events unobserved during
+downtime and late commits before that floor are intentionally missed. There is
+no automatic snapshot restore. Omit the field to retain original reconciliation
+from the configured activation cutoff. Switching policy on a ledger is rejected.
+
+For a private audience, set `workspace_id` and `allowed_user_ids` together. The
+bot must have `chat:write` and `groups:read`, and be invited only to the pinned
+private channel. Do not grant `chat:write.public`. Before every post, Outpost
+verifies the token's workspace/bot identity, private/unshared/nongeneral/non-DM
+channel flags, and all paginated membership. Only configured users plus the
+authenticated bot may be present. Incomplete or rejected verification prevents
+posting. A rejected check pauses the running dispatcher, makes readiness fail,
+and exposes `outpost_safety_paused=1`; logs identify the pause without order data.
+Inspect membership, resolve the condition, explicitly retry any guard-failed
+record, and restart to resume. Slack does not provide an atomic membership-
+conditional post, so administrators must also control channel membership.
+
+`-command status` reports state counts and effective activation. Metrics also
+expose `outpost_effective_activation_timestamp_seconds`. Configure external alerts
+on destination guard rejection/paused dispatch and stale reconciliation.
+
+For minimal container images, `-command healthcheck -config CONFIG` checks the
+loopback liveness endpoint with a three-second timeout and does not open state.
+The service emits a structured `outpost_health` counts/ages heartbeat once per
+minute to stdout for external log-based monitoring; it includes no event IDs,
+payloads, tokens or source responses.

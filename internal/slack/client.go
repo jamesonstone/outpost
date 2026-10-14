@@ -31,6 +31,11 @@ type Client struct {
 	Channel  string
 	HTTP     *http.Client
 	Endpoint string
+	// Workspace and AllowedUsers enable strict private-destination verification.
+	Workspace    string
+	AllowedUsers []string
+	// APIBase overrides the verification API base only for HTTP fixtures.
+	APIBase string
 }
 
 var _ core.Destination = (*Client)(nil)
@@ -62,6 +67,9 @@ func (c *Client) Send(ctx context.Context, event core.Event) (core.Receipt, erro
 	}
 	if ctx.Err() != nil {
 		return core.Receipt{}, failure("canceled", false, false)
+	}
+	if err := c.Verify(ctx); err != nil {
+		return core.Receipt{}, err
 	}
 	payload, _ := json.Marshal(message{Channel: c.Channel, Text: text, Parse: "none"})
 	endpoint := c.Endpoint

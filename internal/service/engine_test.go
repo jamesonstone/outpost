@@ -157,3 +157,40 @@ func TestFutureActivationDoesNotPersistInvalidSweep(t *testing.T) {
 		t.Fatal("activation failed to start")
 	}
 }
+
+func TestGuardFailurePausesDispatch(t *testing.T) {
+	e, src, dst, now := fixture(t)
+	src.events = []core.Event{synthetic("a", *now)}
+	e.Enabled = true
+	if _, err := e.ScanPage(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	dst.failure = &core.SendError{Category: "destination_guard_rejected", Permanent: true}
+	if _, err := e.DispatchOne(context.Background()); !errors.Is(err, ErrDestinationUnsafe) {
+		t.Fatal("unsafe destination did not pause", err)
+	}
+	if !e.SafetyPaused.Load() {
+		t.Fatal("pause not visible")
+	}
+	if sent, err := e.DispatchOne(context.Background()); sent || !errors.Is(err, ErrDestinationUnsafe) || dst.calls != 1 {
+		t.Fatal("paused dispatcher called destination")
+	}
+}
+func TestScannerUsesLedgerFloor(t *testing.T) {
+	now := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	p := core.Policy{Source: "synthetic", Channel: "C123", Partner: "Example", Activation: now.Add(-time.Hour), NewStatePolicy: "from_startup"}
+	st, err := state.OpenAt(filepath.Join(t.TempDir(), "ledger.db"), p, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	src := &fakeSource{events: []core.Event{synthetic("historical", now.Add(-time.Minute)), synthetic("current", now)}}
+	e := &Engine{Store: st, Source: src, Activation: p.Activation, PageSize: 100, Now: func() time.Time { return now }}
+	if _, err := e.ScanPage(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := st.List(100)
+	if len(rows) != 1 || rows[0].Event.ID != "current" {
+		t.Fatal("scanner resurrected missing historical event")
+	}
+}
